@@ -1,0 +1,14 @@
+.venv/
+.idea/
+__pycache__/
+*.pyc
+
+data/
+**/checkpoints/
+**/runs/
+
+*.pt
+*.pth
+*.onnx
+
+.DS_Store
