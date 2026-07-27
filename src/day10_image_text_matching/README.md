@@ -77,7 +77,14 @@ nn.BCEWithLogitsLoss()
 在仓库根目录运行：
 
 ```powershell
-.\.venv\Scripts\python.exe src\day10_image_text_matching\main.py
+conda activate env_3.11
+python src\day10_image_text_matching\main.py
+```
+
+如果当前终端没有初始化 conda，也可以直接用完整路径：
+
+```powershell
+D:\Anaconda\envs\env_3.11\python.exe src\day10_image_text_matching\main.py
 ```
 
 运行后会训练 10 个 epoch，并保存验证集准确率最好的模型：

@@ -485,19 +485,20 @@ nn.BCEWithLogitsLoss()
 
 ### 6. 运行要用虚拟环境 Python
 
-系统 Python 可能没有装 torch。这个项目运行时用：
+系统 Python 和 conda base 可能没有装 torch。这个项目运行时先切到 conda 环境：
 
 ```powershell
-.\.venv\Scripts\python.exe src\day10_image_text_matching\main.py
-```
-
-如果直接：
-
-```powershell
+conda activate env_3.11
 python src\day10_image_text_matching\main.py
 ```
 
-可能会报：
+如果当前终端没有初始化 conda，也可以直接用完整路径：
+
+```powershell
+D:\Anaconda\envs\env_3.11\python.exe src\day10_image_text_matching\main.py
+```
+
+不要直接用系统 Python 或 conda base。它们可能会报：
 
 ```text
 ModuleNotFoundError: No module named 'torch'

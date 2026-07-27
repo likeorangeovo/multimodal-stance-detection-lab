@@ -65,22 +65,30 @@
 
 ## 运行
 
-建议从仓库根目录运行，并使用项目里的虚拟环境：
+建议从仓库根目录运行，并使用 conda 环境 `env_3.11`：
 
 ```powershell
-.\.venv\Scripts\python.exe src\day01_tensors.py
-.\.venv\Scripts\python.exe src\day02_autograd.py
-.\.venv\Scripts\python.exe src\day02_linear_regression.py
-.\.venv\Scripts\python.exe src\day03_dataloader_dataset_module.py
-.\.venv\Scripts\python.exe src\day04_mlp_classifier.py
-.\.venv\Scripts\python.exe src\day06_alexnet_fashionmnist.py
-.\.venv\Scripts\python.exe src\day07_lstm_text_generation.py
-.\.venv\Scripts\python.exe src\day08_training_tools\main.py
-.\.venv\Scripts\python.exe src\day09_resnet_feature_extractor.py
-.\.venv\Scripts\python.exe src\day10_image_text_matching\main.py
+conda activate env_3.11
+
+python src\day01_tensors.py
+python src\day02_autograd.py
+python src\day02_linear_regression.py
+python src\day03_dataloader_dataset_module.py
+python src\day04_mlp_classifier.py
+python src\day06_alexnet_fashionmnist.py
+python src\day07_lstm_text_generation.py
+python src\day08_training_tools\main.py
+python src\day09_resnet_feature_extractor.py
+python src\day10_image_text_matching\main.py
 ```
 
-不要直接用系统的 `python`，我这里系统 Python 没装 `torch`，会报 `ModuleNotFoundError: No module named 'torch'`。
+如果当前终端没有初始化 conda，也可以直接用完整路径运行：
+
+```powershell
+D:\Anaconda\envs\env_3.11\python.exe src\day10_image_text_matching\main.py
+```
+
+不要直接用系统的 `python` 或 conda base，里面可能没装 `torch`，会报 `ModuleNotFoundError: No module named 'torch'`。
 
 ## 备注
 
