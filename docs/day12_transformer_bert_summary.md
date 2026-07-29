@@ -327,21 +327,83 @@ Head 是任务嘴巴，把抽象特征翻译成具体预测。
 
 ## 14. BERT 预训练流程
 
-BERT 预训练阶段同时学习 MLM 和 NSP。此时 BERT Encoder 上方接两个任务 Head：
+BERT 预训练阶段同时学习 MLM 和 NSP。整体流程不是“Encoder 直接给答案”，而是先构造预训练样本，再把样本转成模型需要的输入张量，最后通过两个任务 Head 计算损失。
+
+完整流程：
+
+```text
+原始语料
+→ 构造句子 A / 句子 B
+→ 添加 [CLS] 和 [SEP]
+→ 随机 mask 一些 token
+→ 转成 input_ids / token_type_ids / attention_mask
+→ BERT Encoder
+→ MLM Head 预测被 mask 的词
+→ NSP Head 判断 B 是否为 A 下一句
+→ loss = MLM loss + NSP loss
+→ 反向传播更新 BERT
+```
+
+此时 BERT Encoder 上方接两个任务 Head：
 
 - MLM Head：预测被 `[MASK]` 遮住的 token。
 - NSP Head：判断句子 B 是否是句子 A 的下一句。
 
-预训练输入示例：
+### 预训练样本构造
+
+BERT 原始预训练会从语料中构造两个句子：
+
+- 句子 A：第一段文本。
+- 句子 B：可能是真实下一句，也可能是随机抽取的其他句子。
+
+然后加入特殊符号：
 
 ```text
-[CLS] 我 [MASK] 苹果 [SEP] 这是水果 [SEP]
+[CLS] 句子 A [SEP] 句子 B [SEP]
 ```
 
-前向传播：
+如果句子 B 确实是句子 A 的下一句，NSP 标签是 `IsNext`；否则标签是 `NotNext`。
+
+接着随机 mask 一部分 token，用于 MLM 任务。
+
+示例：
 
 ```text
-输入 token
+原始输入：[CLS] 我 吃 苹果 [SEP] 这是水果 [SEP]
+mask 后： [CLS] 我 [MASK] 苹果 [SEP] 这是水果 [SEP]
+MLM 标签：被 mask 的真实词是“吃”
+NSP 标签：IsNext 或 NotNext
+```
+
+### 模型输入张量
+
+构造好文本后，需要转成 BERT 真正接收的输入：
+
+| 输入 | 作用 |
+|---|---|
+| `input_ids` | 每个 token 在词表中的编号 |
+| `token_type_ids` | 区分 token 属于句子 A 还是句子 B，也叫 segment ids |
+| `attention_mask` | 标记哪些是真实 token，哪些是 padding |
+
+输入表示仍然由三类 embedding 相加：
+
+```text
+Token Embedding + Segment Embedding + Position Embedding
+```
+
+其中：
+
+- `input_ids` 进入 Token Embedding。
+- `token_type_ids` 进入 Segment Embedding。
+- position ids 进入 Position Embedding。
+- `attention_mask` 控制 attention 是否关注 padding 位置。
+
+### Encoder 前向传播
+
+输入张量经过多层 Transformer Encoder 后，每个位置都会输出一个 hidden state。
+
+```text
+input_ids / token_type_ids / attention_mask
 → Token Embedding + Segment Embedding + Position Embedding
 → 多层 Transformer Encoder
 → 每个位置输出 hidden state
@@ -354,10 +416,11 @@ H_[CLS]
 H_我
 H_[MASK]
 H_苹果
+H_[SEP]
 ...
 ```
 
-### MLM Head
+### MLM Head：预测被 mask 的词
 
 MLM 取出被遮蔽位置的 hidden state，例如 `H_[MASK]`。
 
@@ -384,7 +447,7 @@ H_[MASK]
 
 训练时，用预测分布和真实被遮住的词计算交叉熵损失。
 
-### NSP Head
+### NSP Head：判断句子 B 是否为 A 的下一句
 
 NSP 取出 `[CLS]` 位置的 hidden state，即 `H_[CLS]`。
 
@@ -407,7 +470,7 @@ NotNext
 
 训练时，用预测分布和真实 NSP 标签计算交叉熵损失。
 
-### 预训练反向传播
+### Loss 与反向传播
 
 BERT 原始预训练总损失：
 
@@ -419,7 +482,7 @@ total loss = MLM loss + NSP loss
 
 - MLM Head 的参数。
 - NSP Head 的参数。
-- 底部多层 Transformer Encoder 的全部参数。
+- BERT Encoder 的全部参数。
 
 核心理解：
 
@@ -614,4 +677,3 @@ Encoder 输出每个 token 的 hidden state，也就是上下文特征。
 微调时丢掉预训练 Head，换成新任务 Head。
 推理时只做前向传播，不更新参数，输出分类、标签或答案位置。
 ```
-
