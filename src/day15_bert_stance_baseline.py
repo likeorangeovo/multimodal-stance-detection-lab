@@ -11,7 +11,7 @@ from pathlib import Path
 import torch
 from torch.utils.data import DataLoader, TensorDataset
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
-
+from collections import Counter
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = PROJECT_ROOT / "data" / "semeval2016_task6"
@@ -21,7 +21,7 @@ TEST_PATH = DATA_DIR / "testdata-gold" / "SemEval2016-Task6-subtaskA-testdata-go
 MODEL_NAME = "prajjwal1/bert-tiny"
 MAX_LENGTH = 128
 BATCH_SIZE = 32
-EPOCHS = 2
+EPOCHS = 20
 LR = 2e-5
 
 label2id = {
@@ -74,7 +74,7 @@ def f1_score_for_label(gold, pred, label_id):
     return f1
 
 
-def evaluate(model, dataloader, device):
+def evaluate(model, dataloader, device, rows=None):
     model.eval()
     gold_labels = []
     pred_labels = []
@@ -104,6 +104,18 @@ def evaluate(model, dataloader, device):
     macro_f1 = (f1_against + f1_favor + f1_none) / 3
     semeval_f1 = (f1_against + f1_favor) / 2
 
+    wrong_examples = []
+
+    if rows is not None:
+        for row, gold, pred in zip(rows, gold_labels, pred_labels):
+            if gold != pred:
+                wrong_examples.append({
+                    "target": row["Target"],
+                    "tweet": row["Tweet"],
+                    "gold": id2label[gold],
+                    "pred": id2label[pred],
+                })
+
     return {
         "accuracy": accuracy,
         "f1_against": f1_against,
@@ -111,6 +123,7 @@ def evaluate(model, dataloader, device):
         "f1_none": f1_none,
         "macro_f1": macro_f1,
         "semeval_f1": semeval_f1,
+        "wrong_examples": wrong_examples,
     }
 
 
@@ -138,6 +151,15 @@ def main():
     )
     model.to(device)
 
+    train_label_ids = [label2id[row["Stance"]] for row in train_rows]
+    counts = Counter(train_label_ids)
+    class_weights = torch.tensor([
+        len(train_label_ids) / (3 * counts[0]),
+        len(train_label_ids) / (3 * counts[1]),
+        len(train_label_ids) / (3 * counts[2]),
+    ], dtype=torch.float).to(device)
+    loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
+
     optimizer = torch.optim.AdamW(model.parameters(), lr=LR)
 
     for epoch in range(EPOCHS):
@@ -157,7 +179,8 @@ def main():
                 labels=labels,
             )
 
-            loss = outputs.loss
+            # loss = outputs.loss
+            loss = loss_fn(outputs.logits, labels)
             loss.backward()
             optimizer.step()
             optimizer.zero_grad()
@@ -165,7 +188,8 @@ def main():
             total_loss += loss.item()
 
         avg_loss = total_loss / len(train_loader)
-        metrics = evaluate(model, test_loader, device)
+        # metrics = evaluate(model, test_loader, device)
+        metrics = evaluate(model, test_loader, device,test_rows)
 
         print(f"\nEpoch {epoch + 1}/{EPOCHS}")
         print(f"train loss: {avg_loss:.4f}")
@@ -175,6 +199,13 @@ def main():
         print(f"F1 NONE: {metrics['f1_none']:.4f}")
         print(f"macro F1: {metrics['macro_f1']:.4f}")
         print(f"SemEval F1: {metrics['semeval_f1']:.4f}")
+        if epoch == 99:
+            print("\nWrong examples:")
+            for example in metrics["wrong_examples"]:
+                print("Target:", example["target"])
+                print("Tweet:", example["tweet"])
+                print("Gold:", example["gold"], "| Pred:", example["pred"])
+                print()
 
     print("\nDay15 baseline done.")
 
