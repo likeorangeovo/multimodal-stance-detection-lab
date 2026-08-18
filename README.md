@@ -1,8 +1,7 @@
 # Multimodal Stance Detection Lab
 
-这是一个多模态立场检测学习与实验仓库。当前项目已经完成 PyTorch 基础、图像/文本基础模型、图文匹配小练习，以及基于 SemEval-2016 Task 6 的文本立场检测 baseline。后续会围绕 CLIP 图文特征、MMSD 数据集、多模态融合、错误分析、消融实验和项目展示继续推进。
+这是一个多模态立场检测学习与实验仓库。当前项目已经完成 PyTorch 基础、图像/文本基础模型、图文匹配小练习、基于 SemEval-2016 Task 6 的文本立场检测 baseline，以及多模态融合范式的理论梳理。
 
-项目主线不是堆叠模型名，而是逐步跑通一条可复现的研究路线：
 
 ```text
 PyTorch 基础
@@ -10,6 +9,7 @@ PyTorch 基础
     -> 图像与图文匹配基础
     -> CLIP / ViT / 文本模型特征提取
     -> 多模态 late fusion baseline
+    ----------------------------------------
     -> CLIP 相似度增强 / cross-attention 融合
     -> 消融实验与错误分析
     -> Gradio Demo / README / 实验报告
@@ -24,8 +24,8 @@ PyTorch 基础
 | 图像特征 | 预训练 ResNet18 特征提取、ViT 基础理解与特征提取练习 | 已完成 |
 | 图文匹配 | 合成图文匹配数据，ResNet18 + LSTM + MLP 二分类 pipeline | 已完成初版 |
 | 文本立场检测 | SemEval-2016 Task 6、BERT baseline、RoBERTa 对比、prompt-based 方法 | 已完成初版 |
-| 多模态融合 | CLIP 特征、MMSD 数据、多模态 baseline、cross-attention | 待推进 |
-| 项目工程化 | 统一配置、评估脚本、错误案例、Gradio Demo、实验报告 | 待推进 |
+| 多模态融合 | 早期/晚期融合、cross-attention、单流/双流结构、立场检测选型路线 | 理论梳理已完成 |
+| 项目收束 | README、阶段笔记、进度记录 | 已完结 |
 
 ## 目录结构
 
@@ -38,7 +38,9 @@ PyTorch 基础
 │   ├── day11_stance_detection.md
 │   ├── day12_transformer_bert_summary.md
 │   ├── day13_to_day20_week4_summary.md
-│   └── day18_prompt_based_stance.md
+│   ├── day18_prompt_based_stance.md
+│   ├── day26_to_day30_vision_feature_summary.md
+│   └── day31_multimodal_fusion_summary.md
 ├── src/
 │   ├── day01_tensors.py
 │   ├── day02_autograd.py
@@ -95,30 +97,8 @@ PyTorch 基础
 | Day18 | Prompt-based 立场检测 | `src/day18_prompt_based_stance_detection.py`, `docs/day18_prompt_based_stance.md` | 已完成 |
 | Day19 | BERT 立场检测论文阅读 | `docs/day13_to_day20_week4_summary.md` | 已完成 |
 | Day20 | 阶段整理与可视化脚本 | `docs/day13_to_day20_week4_summary.md` | 基础总结已完成，脚本可继续补 |
-
-## 后续计划
-
-后续计划已经从原来的长周期路线压缩为 Day31-Day65，更聚焦于能形成项目成果的实验链路。ViT 不再单独安排大量实战，只作为后续图像 backbone 或特征抽取工具使用。
-
-| 阶段 | Day | 目标 | 关键产出 |
-| --- | --- | --- | --- |
-| 多模态学习基础与图文特征 | Day31-Day35 | 理解融合范式，使用 OpenCLIP 提取图文 embedding | 图文特征提取脚本，一页融合方法对比笔记 |
-| 多模态数据与 baseline | Day36-Day45 | 获取 MMSD 或备用数据，跑通文本/图像/多模态 baseline | Dataset、late fusion baseline、Macro F1、错误案例 |
-| 核心模型改进 | Day46-Day55 | 围绕一个研究问题做改进和消融 | 改进模型、消融实验、混淆矩阵、实验报告初稿 |
-| 工程化与展示 | Day56-Day60 | 整理项目结构和评估脚本，做 Demo | 统一配置、评估脚本、Gradio Demo、README |
-| 前沿探索与研究计划 | Day61-Day65 | 对比视觉语言大模型，形成下一步研究方向 | VLM prompt 对比、论文精读、研究 idea |
-
-推荐的后续主实验线：
-
-```text
-文本 baseline
-    -> 图像 baseline
-    -> BERT/DeBERTa + ResNet/ViT late fusion
-    -> 加入 CLIP 图文相似度特征
-    -> 加入 target 信息或图文匹配辅助任务
-    -> 消融实验
-    -> 错误分析
-```
+| Day26-Day30 | 视觉特征提取方法总结 | `docs/day26_to_day30_vision_feature_summary.md` | 已完成 |
+| Day31 | 多模态融合范式总结 | `docs/day31_multimodal_fusion_summary.md` | 已完成 |
 
 ## 环境
 
@@ -137,8 +117,6 @@ Day14 之后的 HuggingFace 实验还需要：
 ```powershell
 pip install transformers
 ```
-
-如果要继续做 CLIP / OpenCLIP 阶段，后续还需要根据具体实现补充 `open_clip_torch`、`Pillow`、`scikit-learn` 等依赖。
 
 ## 运行方式
 
@@ -195,7 +173,7 @@ Day10 图文匹配数据是代码合成的小数据集，主要用于跑通：
 Dataset -> DataLoader -> image encoder -> text encoder -> feature fusion -> classifier -> train/eval/checkpoint
 ```
 
-后续多模态立场检测阶段会优先寻找 MMSD 数据集；如果 MMSD 获取受阻，暂时使用 PHEME 或其他图文谣言/立场相关数据集作为备用。
+多模态数据集选型已在阶段笔记中讨论过，MMSD、PHEME 或其他图文谣言/立场相关数据集可作为参考方向。
 
 ## 备注
 
